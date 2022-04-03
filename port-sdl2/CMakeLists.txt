@@ -9,7 +9,7 @@ message(STATUS "Found SDL2 at path: ${SDL2_INCLUDE_DIRS}")
 # Define project
 project(gba)
 
-add_definitions(-DFRONTEND_SUPPORTS_RGB565 -DHAVE_STDINT_H -DINLINE=inline -DLSB_FIRST)
+add_definitions(-DFRONTEND_SUPPORTS_RGB565 -DHAVE_STDINT_H -DINLINE=inline -DLSB_FIRST -DUSE_STATIC_WRAM)
 
 add_executable(gba
 "main.cpp" 
@@ -18,7 +18,9 @@ add_executable(gba
 "../src/sound.cpp"
 "../src/system.cpp"
 "../src/thread.c"
-"../libretro-common/memalign.c")
+"../libretro-common/memalign.c"
+"../libretro/libretro.cpp"
+)
 
 target_compile_options(gba PRIVATE  -O3)
 

@@ -84,12 +84,20 @@ uint8_t oam[0x400];
 uint8_t ioMem[0x400];
 uint8_t paletteRAM[0x400];
 uint8_t internalRAM[0x8000];
+
+#ifdef USE_STATIC_WRAM
 uint8_t vram[0x20000];
+uint8_t workRAM[0x40000];
+uint8_t bios[0x4000];
+uint16_t pix[2 * PIX_BUFFER_SCREEN_WIDTH * 160];
+#else
+uint8_t *vram;//[0x20000];
 uint8_t *workRAM;//[0x40000];
 uint8_t *bios;//[0x4000];
-
-
 uint16_t *pix;//[2 * PIX_BUFFER_SCREEN_WIDTH * 160];
+#endif
+
+
 
 
 int renderfunc_mode = 0;
