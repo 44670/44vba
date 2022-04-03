@@ -1,0 +1,1 @@
+%IDF_PATH%\components\partition_table\parttool.py write_partition --input rom.gba --partition-name "rom"
