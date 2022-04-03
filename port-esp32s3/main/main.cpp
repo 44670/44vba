@@ -50,6 +50,7 @@ void emuInit() {
   CPUSetupBuffers();
   CPUInit(NULL, false);
   CPUReset();
+  SetFrameskip(0x1);
 }
 
 uint8_t *libretro_save_buf;
@@ -67,8 +68,7 @@ extern "C" void app_main() {
                          (const void **)&rom, &outHandle);
   ESP_ERROR_CHECK(ret);
   printf("rom: %p\n", rom);
-  //internalRAM = (uint8_t *)malloc(0x8000);
-  //vram = (uint8_t *)malloc(0x20000);
+  vram = (uint8_t *)malloc(0x20000);
   workRAM = (uint8_t *)malloc(0x40000);
   bios = (uint8_t *)malloc(0x4000);
   pix = (uint16_t *)malloc(4 * 256 * 160);

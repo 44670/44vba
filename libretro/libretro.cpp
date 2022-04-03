@@ -386,7 +386,7 @@ void load_image_preferences(void) {
   buffer[3] = rom[0xaf];
   buffer[4] = 0;
 
-  if (log_cb) log_cb(RETRO_LOG_DEBUG, "GameID in ROM is: %s\n", buffer);
+  printf("GameID in ROM is: %s\n", buffer);
 
   bool found = false;
   int found_no = 0;
@@ -414,12 +414,12 @@ void load_image_preferences(void) {
     mirroringEnable = gbaover[found_no].mirroringEnabled;
   }
 
-  if (log_cb) {
-    log_cb(RETRO_LOG_DEBUG, "RTC = %d.\n", enableRtc);
-    log_cb(RETRO_LOG_DEBUG, "flashSize = %d.\n", flashSize);
-    log_cb(RETRO_LOG_DEBUG, "cpuSaveType = %d.\n", cpuSaveType);
-    log_cb(RETRO_LOG_DEBUG, "mirroringEnable = %d.\n", mirroringEnable);
-  }
+
+    printf("RTC = %d.\n", enableRtc);
+    printf( "flashSize = %d.\n", flashSize);
+    printf( "cpuSaveType = %d.\n", cpuSaveType);
+    printf( "mirroringEnable = %d.\n", mirroringEnable);
+  
 }
 
 #if USE_FRAME_SKIP
@@ -468,7 +468,7 @@ void gba_init(void) {
 
   rtcEnable(rtc);
 
-  doMirroring(mirroringEnable);
+  //doMirroring(mirroringEnable);
 
   soundSetSampleRate(48000);
 

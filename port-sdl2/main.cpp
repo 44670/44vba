@@ -6,6 +6,7 @@
 #include "SDL.h"
 #include "gba.h"
 #include "globals.h"
+#include "memory.h"
 #include "sound.h"
 
 int frameDrawn = 0;
@@ -59,12 +60,19 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
 }
 
 void emuInit() {
-  void gba_init(void);
+  void load_image_preferences(void);
+  cpuSaveType = 0;
+  flashSize = 0x10000;
+  enableRtc = false;
+  mirroringEnable = false;
   CPUSetupBuffers();
   CPUInit(NULL, false);
-  gba_init();
+  //gba_init();
+  load_image_preferences();
   CPUReset();
   soundSetSampleRate(48000);
+  soundReset();
+  rtcEnable(true);
 }
 
 int main(int argc, char *argv[]) {

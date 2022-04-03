@@ -73,7 +73,7 @@ void SetFrameskip(int code)
 typedef void (*renderfunc_t)(void);
 
 template<int renderer_idx>
-renderfunc_t GetRenderFunc(int mode, int type);
+inline renderfunc_t GetRenderFunc(int mode, int type);
 
 inline static long max(int p, int q) { return p > q ? p : q; }
 inline static long min(int p, int q) { return p < q ? p : q; }
@@ -11544,7 +11544,7 @@ static void postRender() {
 }
 
 template<int renderer_idx>
-renderfunc_t GetRenderFunc(int mode, int type) {
+inline renderfunc_t GetRenderFunc(int mode, int type) {
 	switch((mode << 4) | type) {
 		case 0x00: return mode0RenderLine<renderer_idx>;
 		case 0x01: return mode0RenderLineNoWindow<renderer_idx>;
