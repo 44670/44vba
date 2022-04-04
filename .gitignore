@@ -26,3 +26,5 @@ build
 *.nacp
 *.nro
 .*
+
+port-watchos
