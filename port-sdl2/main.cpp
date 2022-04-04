@@ -11,7 +11,9 @@
 
 int frameDrawn = 0;
 int audioSent = 0;
+int turboMode = 1;
 uint32_t frameCount = 0;
+int emuFPS = 0;
 
 SDL_Texture *texture;
 SDL_Renderer *renderer;
@@ -22,6 +24,13 @@ uint8_t rom[32 * 1024 * 1024];
 void emuRunAudio() {
   audioSent = 0;
   while (!audioSent) {
+    CPULoop();
+  }
+}
+
+void emuRunFrame() {
+  frameDrawn = 0;
+  while (!frameDrawn) {
     CPULoop();
   }
 }
@@ -44,8 +53,14 @@ void systemDrawScreen(void) {
     if (delta <= 0) {
       delta = 1;
     }
-    printf("FPS: %d\n", 120 * 1000 / delta);
+    emuFPS = 120 * 1000 / delta;
+    printf("FPS: %d\n", emuFPS);
     lastTime = currentTime;
+  }
+  if (turboMode) {
+    if (frameCount % 10 != 0) {
+      return;
+    }
   }
   uint16_t *rgb565Buf = pix;
   SDL_UpdateTexture(texture, NULL, rgb565Buf, 256 * 2);
@@ -56,6 +71,10 @@ void systemDrawScreen(void) {
 
 void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
   audioSent = 1;
+  if (turboMode) {
+    // Do not send audio in turbo mode
+    return;
+  }
   SDL_QueueAudio(audioDevice, finalWave, length * 2);
 }
 
@@ -123,8 +142,13 @@ int main(int argc, char *argv[]) {
   SDL_Event event;
 
   while (1) {
-    while (SDL_GetQueuedAudioSize(audioDevice) < 1600 * 4) {
-      emuRunAudio();
+    if (turboMode) {
+      emuRunFrame();
+    } else {
+      // Sync with audio
+      while (SDL_GetQueuedAudioSize(audioDevice) < 1600 * 4) {
+        emuRunAudio();
+      }
     }
 
     while (SDL_PollEvent(&event)) {
