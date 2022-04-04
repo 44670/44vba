@@ -72,7 +72,7 @@ void systemDrawScreen(void) {
     lastTime = currentTime;
   }
   if (turboMode) {
-    if (frameCount % 60 != 0) {
+    if (frameCount % 20 != 0) {
       return;
     }
   }
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
       SDL_CreateWindow("GBA", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                        240, 160, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   renderer = SDL_CreateRenderer(
-      window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+      window, -1, SDL_RENDERER_ACCELERATED );
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
                               SDL_TEXTUREACCESS_STREAMING, 240, 160);
