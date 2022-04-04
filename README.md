@@ -13,3 +13,4 @@ Forked from https://github.com/libretro/vba-next .
 | SDL2 | AMD 3800X | ~1000 fps | |
 | SDL1 | New 3DS | ~50fps | |
 | SDL2 | Switch | ~200 fps | |
+| SDL2 | Apple M1 | ~1700 fps | wow |

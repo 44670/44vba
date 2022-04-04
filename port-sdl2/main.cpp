@@ -26,7 +26,7 @@ uint8_t rom[32 * 1024 * 1024];
 volatile int16_t audioFifo[AUDIO_FIFO_CAP];
 volatile int audioFifoHead = 0;
 volatile int audioFifoLen = 0;
-volatile int turboMode = 0;
+volatile int turboMode = 1;
 // "a", "b", "select", "start", "right", "left", "up", "down", "r", "l"
 volatile int emuKeyState[10][2];
 int emuKeyboardMap[10] = {SDLK_x,     SDLK_z,    SDLK_SPACE, SDLK_RETURN,
@@ -72,7 +72,7 @@ void systemDrawScreen(void) {
     lastTime = currentTime;
   }
   if (turboMode) {
-    if (frameCount % 10 != 0) {
+    if (frameCount % 60 != 0) {
       return;
     }
   }
