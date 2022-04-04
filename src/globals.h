@@ -23,6 +23,7 @@ extern bool skipSaveGameBattery; // skip battery data when reading save states
 
 extern int cpuDmaCount;
 
+#define LIBRETRO_SAVE_BUF_LEN (0x22000)
 
 extern uint8_t oam[];
 extern uint8_t ioMem[];

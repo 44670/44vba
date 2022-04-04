@@ -90,7 +90,7 @@ uint8_t vram[0x20000];
 uint8_t workRAM[0x40000];
 uint8_t bios[0x4000];
 uint16_t pix[2 * PIX_BUFFER_SCREEN_WIDTH * 160];
-uint8_t libretro_save_buf[0x20000+0x2000];
+uint8_t libretro_save_buf[LIBRETRO_SAVE_BUF_LEN];
 
 #else
 uint8_t *vram;//[0x20000];

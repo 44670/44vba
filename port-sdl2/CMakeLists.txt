@@ -17,7 +17,9 @@ add_executable(gba
 "../src/memory.cpp"
 "../src/sound.cpp"
 "../src/system.cpp"
+"../src/ui.cpp"
 "../libretro/libretro.cpp"
+
 )
 
 target_compile_options(gba PRIVATE  -O3)
