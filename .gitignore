@@ -20,3 +20,8 @@ package.json
 build
 *.old
 *.gba
+*.3dsx
+*.elf
+*.smdh
+*.nacp
+*.nro

@@ -75,7 +75,7 @@ void utilReadDataMem(const uint8_t *& data, variable_desc *desc)
 #define FLASH_PROGRAM            8
 #define FLASH_SETBANK            9
 
-extern uint8_t *libretro_save_buf;
+
 uint8_t *flashSaveMemory;
 
 int flashState = FLASH_READ_ARRAY;

@@ -12,12 +12,12 @@
 int frameDrawn = 0;
 int audioSent = 0;
 uint32_t frameCount = 0;
-uint8_t *libretro_save_buf;
 
 SDL_Texture *texture;
 SDL_Renderer *renderer;
 SDL_AudioDeviceID audioDevice;
 uint32_t lastTime = SDL_GetTicks();
+uint8_t rom[32 * 1024 * 1024];
 
 void emuRunAudio() {
   audioSent = 0;
@@ -67,7 +67,7 @@ void emuInit() {
   mirroringEnable = false;
   CPUSetupBuffers();
   CPUInit(NULL, false);
-  //gba_init();
+  // gba_init();
   load_image_preferences();
   CPUReset();
   soundSetSampleRate(48000);
@@ -76,12 +76,6 @@ void emuInit() {
 }
 
 int main(int argc, char *argv[]) {
-  // workRAM = (uint8_t *)malloc(0x40000);
-  // bios = (uint8_t *)malloc(0x4000);
-  // pix = (uint16_t *)malloc(4 * 256 * 160);
-  // vram = (uint8_t *)malloc(0x20000);
-  libretro_save_buf = (uint8_t *)malloc(0x20000 + 0x2000);
-  rom = (uint8_t *)malloc(32 * 1024 * 1024);
   FILE *f = fopen("rom.gba", "rb");
   if (!f) {
     printf("Could not open rom.gba\n");
@@ -95,6 +89,8 @@ int main(int argc, char *argv[]) {
   printf("We are on windows! Using opengl...\n");
   SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 #endif
+  // Set scaling to nearest
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
   // Init SDL2
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
   // Init video to RGB565
@@ -104,6 +100,7 @@ int main(int argc, char *argv[]) {
   renderer = SDL_CreateRenderer(window, -1, 0);
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
                               SDL_TEXTUREACCESS_STREAMING, 240, 160);
+
   // Init audio
   SDL_AudioSpec desiredSpec = {
       .freq = 48000,
