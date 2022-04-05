@@ -9,31 +9,39 @@
 #include "memory.h"
 #include "sound.h"
 #include "ui.h"
+#if defined(__SWITCH__)
+#include <switch.h>
+#endif
 
+int isQuitting = 0;
+int autoSaveEnabled = 0;
 int frameDrawn = 0;
 int audioSent = 0;
 uint32_t frameCount = 0;
 int emuFPS = 0;
 char savFilePath[512];
+char osdText[64];
+int osdShowCount = 0;
 
 SDL_Texture *texture;
 SDL_Renderer *renderer;
 SDL_AudioDeviceID audioDevice;
 uint32_t lastTime = SDL_GetTicks();
-uint8_t rom[32 * 1024 * 1024];
+uint8_t lastSaveBuf[LIBRETRO_SAVE_BUF_LEN];
+int prevSaveChanged = 0;
 
 #define AUDIO_FIFO_CAP (8192)
 volatile int16_t audioFifo[AUDIO_FIFO_CAP];
 volatile int audioFifoHead = 0;
 volatile int audioFifoLen = 0;
-volatile int turboMode = 1;
+volatile int turboMode = 0;
 // "a", "b", "select", "start", "right", "left", "up", "down", "r", "l"
 volatile int emuKeyState[10][2];
 int emuKeyboardMap[10] = {SDLK_x,     SDLK_z,    SDLK_SPACE, SDLK_RETURN,
                           SDLK_RIGHT, SDLK_LEFT, SDLK_UP,    SDLK_DOWN,
                           SDLK_s,     SDLK_a};
 int emuJoystickMap[10] = {0, 1, 11, 10, 14, 12, 13, 15, 7, 6};
-int emuJoystickDeadzone = 1000;
+int emuJoystickDeadzone = 10000;
 
 void emuRunAudio() {
   audioSent = 0;
@@ -47,6 +55,48 @@ void emuRunFrame() {
   while (!frameDrawn) {
     CPULoop();
   }
+}
+
+void emuShowOsd(int cnt, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(osdText, sizeof(osdText), fmt, args);
+  va_end(args);
+  osdShowCount = cnt;
+}
+
+int emuUpdateSaveFile() {
+  if (strlen(savFilePath) == 0) {
+    return 0;
+  }
+  FILE *savFile = fopen(savFilePath, "wb");
+  if (!savFile) {
+    printf("Failed to open save file: %s\n", savFilePath);
+    emuShowOsd(10, "Save failed!");
+    return -1;
+  }
+  fwrite(libretro_save_buf, 1, LIBRETRO_SAVE_BUF_LEN, savFile);
+  fclose(savFile);
+  printf("Saved save file: %s\n", savFilePath);
+  emuShowOsd(3, "Auto saved.");
+  osdShowCount = 3;
+  return 0;
+}
+
+void emuCheckSave() {
+  if (!autoSaveEnabled) {
+    return;
+  }
+  int changed = memcmp(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN);
+  if (changed) {
+    memcpy(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN);
+  } else {
+    if (prevSaveChanged) {
+      // Changed in previous check, and not changed now
+      emuUpdateSaveFile();
+    }
+  }
+  prevSaveChanged = changed;
 }
 
 void systemMessage(const char *fmt, ...) {
@@ -71,16 +121,25 @@ void systemDrawScreen(void) {
     printf("FPS: %d\n", emuFPS);
     lastTime = currentTime;
   }
+  if (frameCount % 60 == 0) {
+    if (!turboMode) {
+      emuCheckSave();
+      if (osdShowCount > 0) {
+        osdShowCount--;
+      }
+    }
+  }
   if (turboMode) {
     if (frameCount % 20 != 0) {
       return;
     }
   }
   uint16_t *rgb565Buf = pix;
-  uiDrawBoxDim(0, 0, 240, 10);
-  char buf[32];
-  snprintf(buf, sizeof(buf), "FPS: %d", emuFPS);
-  uiDrawText(0, 0, buf, COLOR_WHITE);
+  if (osdShowCount > 0) {
+    // Draw osd
+    uiDrawBoxDim(0, 0, 240, 10);
+    uiDrawText(0, 0, osdText, COLOR_WHITE);
+  }
   SDL_UpdateTexture(texture, NULL, rgb565Buf, 256 * 2);
   SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -126,7 +185,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
 }
 
 int emuLoadROM(const char *path) {
-  memset(rom, 0, sizeof(rom));
+  memset(rom, 0, 32 * 1024 * 1024);
   memset(libretro_save_buf, 0, LIBRETRO_SAVE_BUF_LEN);
   FILE *f = fopen(path, "rb");
   if (!f) {
@@ -161,21 +220,8 @@ int emuLoadROM(const char *path) {
     fread(libretro_save_buf, 1, LIBRETRO_SAVE_BUF_LEN, savFile);
     fclose(savFile);
   }
-  return 0;
-}
-
-int emuUpdateSaveFile() {
-  if (strlen(savFilePath) == 0) {
-    return 0;
-  }
-  FILE *savFile = fopen(savFilePath, "wb");
-  if (!savFile) {
-    printf("Failed to open save file: %s\n", savFilePath);
-    return -1;
-  }
-  fwrite(libretro_save_buf, 1, LIBRETRO_SAVE_BUF_LEN, savFile);
-  fclose(savFile);
-  printf("Saved save file: %s\n", savFilePath);
+  memcpy(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN);
+  prevSaveChanged = 0;
   return 0;
 }
 
@@ -189,6 +235,11 @@ void emuHandleKey(int key, int down) {
 }
 
 int main(int argc, char *argv[]) {
+  /*
+  int ret = uiFileMenu();
+  if (uiFileMenu() == -1) {
+    return 0;
+  }*/
   if (emuLoadROM("rom.gba") != 0) {
     return 2;
   }
@@ -196,15 +247,14 @@ int main(int argc, char *argv[]) {
   printf("We are on windows! Using opengl...\n");
   SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 #endif
-
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   // Init SDL2
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
   // Init video to RGB565
   SDL_Window *window =
       SDL_CreateWindow("GBA", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                       240, 160, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-  renderer = SDL_CreateRenderer(
-      window, -1, SDL_RENDERER_ACCELERATED );
+                       1280, 720, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
                               SDL_TEXTUREACCESS_STREAMING, 240, 160);
@@ -214,7 +264,7 @@ int main(int argc, char *argv[]) {
       .freq = 48000,
       .format = AUDIO_S16SYS,
       .channels = 2,
-      .samples = 1024,
+      .samples = 512,
       .callback = audioCallback,
   };
   SDL_AudioSpec obtainedSpec;
@@ -222,7 +272,7 @@ int main(int argc, char *argv[]) {
   if (!joystick) {
     printf("Failed to open joystick\n");
   }
-  SDL_JoystickEventState(SDL_DISABLE);
+  SDL_JoystickEventState(SDL_ENABLE);
   audioDevice = SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &obtainedSpec, 0);
   if (audioDevice == 0) {
     printf("Could not open audio device\n");
@@ -231,8 +281,13 @@ int main(int argc, char *argv[]) {
   printf("Audio device opened\n");
   // Play audio
   SDL_PauseAudioDevice(audioDevice, 0);
-  SDL_Event event;
+#ifdef __SWITCH__
+  appletLockExit();
+#endif
   while (1) {
+    if (isQuitting) {
+      goto bed;
+    }
     frameDrawn = 0;
     if (turboMode) {
       emuRunFrame();
@@ -245,8 +300,10 @@ int main(int argc, char *argv[]) {
     }
     // Handle event when frame is drawn
     if (frameDrawn) {
+      SDL_Event event;
       while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
+          isQuitting = 1;
           goto bed;
         }
         if (event.type == SDL_KEYDOWN) {
@@ -260,7 +317,7 @@ int main(int argc, char *argv[]) {
       }
       // Poll joysticks
       if (joystick) {
-        SDL_JoystickUpdate();
+        // SDL_JoystickUpdate(); // Already called in SDL_PollEvent
         for (int i = 0; i < 10; i++) {
           if (emuJoystickMap[i] == -1) {
             continue;
@@ -272,10 +329,9 @@ int main(int argc, char *argv[]) {
         int yaxis = SDL_JoystickGetAxis(joystick, 1);
         emuKeyState[4][1] |= xaxis > emuJoystickDeadzone;
         emuKeyState[5][1] |= xaxis < -emuJoystickDeadzone;
-        emuKeyState[6][1] |= yaxis > emuJoystickDeadzone;
-        emuKeyState[7][1] |= yaxis < -emuJoystickDeadzone;
+        emuKeyState[6][1] |= yaxis < -emuJoystickDeadzone;
+        emuKeyState[7][1] |= yaxis > emuJoystickDeadzone;
       }
-
       joy = 0;
       for (int i = 0; i < 10; i++) {
         if (emuKeyState[i][0] || emuKeyState[i][1]) {
@@ -287,5 +343,8 @@ int main(int argc, char *argv[]) {
   }
 bed:
   emuUpdateSaveFile();
+#ifdef __SWITCH__
+  appletUnlockExit();
+#endif
   return 0;
 }

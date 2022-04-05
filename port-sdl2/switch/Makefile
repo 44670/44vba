@@ -37,11 +37,15 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+TARGET		:=	44GBA
 BUILD		:=	build
 SOURCES		:=	../ ../../src ../../libretro
 DATA		:=	data
 INCLUDES	:=	include
+APP_TITLE 	:=	"44GBA"
+APP_AUTHOR 	:=	"44"
+APP_VERSION 	:=	"0.0.1"
+
 #ROMFS	:=	romfs
 
 #---------------------------------------------------------------------------------
