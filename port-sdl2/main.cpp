@@ -13,6 +13,8 @@
 #include <switch.h>
 #endif
 
+int showAudioDebug = 1;
+
 int isQuitting = 0;
 int autoSaveEnabled = 0;
 int frameDrawn = 0;
@@ -142,16 +144,19 @@ void systemDrawScreen(void) {
       return;
     }
   }
-  uint16_t *rgb565Buf = pix;
+  char buf[64];
   if (osdShowCount > 0) {
     // Draw osd
     uiDrawBoxDim(0, 0, 240, 10);
     uiDrawText(0, 0, osdText, COLOR_WHITE);
+  } else if (showAudioDebug) {
+    uiDrawBoxDim(0, 0, 240, 10);
+    snprintf(buf, sizeof(buf), "FPS: %d, fifo: %d", emuFPS, audioFifoLen);
+    uiDrawText(0, 0, buf, COLOR_WHITE);
   } else {
     if (turboMode) {
       // Show FPS
       uiDrawBoxDim(0, 0, 240, 10);
-      char buf[16];
       snprintf(buf, sizeof(buf), "FPS: %d", emuFPS);
       uiDrawText(0, 0, buf, COLOR_WHITE);
     }
@@ -167,6 +172,10 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
   }
   SDL_LockAudioDevice(audioDevice);
   int wpos = (audioFifoHead + audioFifoLen) % AUDIO_FIFO_CAP;
+  if (audioFifoLen + length >= AUDIO_FIFO_CAP) {
+    printf("audio fifo overflow: %d\n", audioFifoLen);
+    goto bed;
+  }
   length = (length / 2) * 2;
   for (int i = 0; i < length; i++) {
     if (audioFifoLen >= AUDIO_FIFO_CAP) {
@@ -176,6 +185,7 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
     wpos = (wpos + 1) % AUDIO_FIFO_CAP;
     audioFifoLen++;
   }
+bed:
   SDL_UnlockAudioDevice(audioDevice);
 }
 
@@ -224,7 +234,7 @@ int emuLoadROM(const char *path) {
   void load_image_preferences(void);
   load_image_preferences();
   CPUReset();
-  soundSetSampleRate(48000);
+  soundSetSampleRate(47782);
   soundReset();
   rtcEnable(true);
   // Load Save File
@@ -271,7 +281,7 @@ int main(int argc, char *argv[]) {
   SDL_Window *window = SDL_CreateWindow(
       "GBA", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
       windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
                               SDL_TEXTUREACCESS_STREAMING, 240, 160);
@@ -315,19 +325,7 @@ int main(int argc, char *argv[]) {
       goto bed;
     }
     frameDrawn = 0;
-    if (turboMode) {
-      emuRunFrame();
-    } else {
-      while (1) {
-        SDL_LockAudioDevice(audioDevice);
-        int fifoLen = audioFifoLen;
-        SDL_UnlockAudioDevice(audioDevice);
-        if (fifoLen > 4800) {
-          break;
-        }
-        emuRunAudio();
-      }
-    }
+    emuRunFrame();
     // Handle event when frame is drawn
     if (frameDrawn) {
       SDL_Event event;
