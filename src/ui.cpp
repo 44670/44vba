@@ -1,15 +1,21 @@
 #include "ui.h"
 
+#include <SDL.h>
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <vgafont8.h>
-#include <SDL.h>
+
+#include <string>
+#include <vector>
 
 #include "gba.h"
 #include "globals.h"
 
+#define COLOR_FG (0xffff)
+
+void emuUpdateFB();
 void uiClear() { memset(pix, 0, 240 * 160 * 2); }
 
 static inline void uiSetP(int x, int y, uint16_t color) {
@@ -61,6 +67,7 @@ void uiDrawText(int x, int y, const char *text, uint16_t color) {
 }
 
 extern int isQuitting;
+extern int emuJoystickMap[12];
 int uiWaitKey() {
   SDL_Event event;
   while (1) {
@@ -72,7 +79,112 @@ int uiWaitKey() {
       isQuitting = 1;
       return SDLK_ESCAPE;
     }
+    if (event.type == SDL_JOYBUTTONDOWN) {
+      int button = event.jbutton.button;
+      if (emuJoystickMap[0] == button) {
+        return SDLK_RETURN;
+      }
+      if (emuJoystickMap[6] == button) {
+        return SDLK_UP;
+      }
+      if (emuJoystickMap[7] == button) {
+        return SDLK_DOWN;
+      }
+    }
   }
 }
 
-const char *uiChooseFileMenu() {}
+void uiMsgBox(const char *text) {
+  uiClear();
+  uiDrawText(0, 10, text, COLOR_FG);
+  emuUpdateFB();
+  uiWaitKey();
+}
+
+void uiDispError(const char *text) {
+  uiClear();
+  uiDrawText(0, 0, "Error:", COLOR_FG);
+  uiDrawText(0, 12, text, COLOR_FG);
+  emuUpdateFB();
+  while(!isQuitting) {
+    uiWaitKey();
+  }
+}
+
+using namespace std;
+vector<string> uiGbaFileList;
+string uiGbaFilePath;
+
+const char *uiChooseFileMenu() {
+  uiGbaFileList.clear();
+  DIR *dir = opendir("gba");
+  if (!dir) {
+#ifdef _WIN32
+    mkdir("gba");
+#else
+    mkdir("gba", 0777);
+#endif
+
+    dir = opendir("gba");
+  }
+  if (!dir) {
+    uiDispError("Could not open gba dir.");
+    return NULL;
+  }
+  struct dirent *ent;
+  while ((ent = readdir(dir))) {
+    if (ent->d_name[0] == '.') {
+      continue;
+    }
+    // Skip non-GBA files
+    if (strlen(ent->d_name) < 4 ||
+        strcmp(ent->d_name + strlen(ent->d_name) - 4, ".gba")) {
+      continue;
+    }
+    uiGbaFileList.push_back(ent->d_name);
+  }
+  closedir(dir);
+  if (uiGbaFileList.size() == 0) {
+    uiDispError("No gba files found in gba dir.");
+    return NULL;
+  }
+  int currentItem = 0;
+  const int itemsPerPage = 13;
+  while (1) {
+    uiClear();
+    int page = currentItem / itemsPerPage;
+    int pageStart = page * itemsPerPage;
+    int y = 0;
+    for (int i = pageStart; i < pageStart + itemsPerPage; i++) {
+      if (i >= (int)uiGbaFileList.size()) {
+        break;
+      }
+      uiDrawText(24, y, uiGbaFileList[i].c_str(), COLOR_FG);
+      if (i == currentItem) {
+        uiDrawText(8, y, ">", COLOR_FG);
+      }
+      y += 12;
+    }
+    emuUpdateFB();
+    int k = uiWaitKey();
+    if (k == SDLK_ESCAPE) {
+      return NULL;
+    }
+    if (k == SDLK_UP) {
+      currentItem--;
+      if (currentItem < 0) {
+        currentItem = (int)uiGbaFileList.size() - 1;
+      }
+    }
+    if (k == SDLK_DOWN) {
+      currentItem++;
+      if (currentItem >= (int)uiGbaFileList.size()) {
+        currentItem = 0;
+      }
+    }
+    if (k == SDLK_RETURN) {
+      uiGbaFilePath = "gba/" + uiGbaFileList[currentItem];
+      return uiGbaFilePath.c_str();
+    }
+  }
+}

@@ -9,3 +9,5 @@ void uiDrawBox(int x, int y, int w, int h, uint16_t color);
 #define COLOR_WHITE (0xFFFF)
 #define LCD_W (256)
 #define LCD_H (160)
+
+const char *uiChooseFileMenu();

@@ -37,7 +37,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-TARGET		:=	44GBA
+TARGET		:=	44gba
 BUILD		:=	build
 SOURCES		:=	../ ../../src ../../libretro
 DATA		:=	data
