@@ -72,9 +72,11 @@ int uiWaitKey() {
   SDL_Event event;
   while (1) {
     SDL_WaitEvent(&event);
+#if !defined(__SWITCH__) && !defined(__3DS__)
     if (event.type == SDL_KEYDOWN) {
       return event.key.keysym.sym;
     }
+#endif
     if (event.type == SDL_QUIT) {
       isQuitting = 1;
       return SDLK_ESCAPE;
@@ -91,13 +93,32 @@ int uiWaitKey() {
         return SDLK_DOWN;
       }
     }
+#ifdef __3DS__
+    if (event.type == SDL_JOYHATMOTION) {
+      Uint8 hat = event.jhat.hat;
+      Uint8 value = event.jhat.value;
+      if (value == SDL_HAT_UP) {
+        return SDLK_UP;
+      } else if (value == SDL_HAT_DOWN) {
+        return SDLK_DOWN;
+      } else if (value == SDL_HAT_LEFT) {
+        return SDLK_LEFT;
+      } else if (value == SDL_HAT_RIGHT) {
+        return SDLK_RIGHT;
+      }
+    }
+#endif
   }
 }
 
-void uiMsgBox(const char *text) {
+void uiShowText(const char *text) {
   uiClear();
   uiDrawText(0, 10, text, COLOR_FG);
   emuUpdateFB();
+}
+
+void uiMsgBox(const char *text) {
+  uiShowText(text);
   uiWaitKey();
 }
 
@@ -106,7 +127,7 @@ void uiDispError(const char *text) {
   uiDrawText(0, 0, "Error:", COLOR_FG);
   uiDrawText(0, 12, text, COLOR_FG);
   emuUpdateFB();
-  while(!isQuitting) {
+  while (!isQuitting) {
     uiWaitKey();
   }
 }
@@ -114,18 +135,23 @@ void uiDispError(const char *text) {
 using namespace std;
 vector<string> uiGbaFileList;
 string uiGbaFilePath;
+#ifdef __VITA__
+#define BASE_DIR "ux0:gba"
+#else
+#define BASE_DIR "gba"
+#endif
 
 const char *uiChooseFileMenu() {
   uiGbaFileList.clear();
-  DIR *dir = opendir("gba");
+  DIR *dir = opendir(BASE_DIR);
   if (!dir) {
 #ifdef _WIN32
-    mkdir("gba");
+    mkdir(BASE_DIR);
 #else
-    mkdir("gba", 0777);
+    mkdir(BASE_DIR, 0777);
 #endif
 
-    dir = opendir("gba");
+    dir = opendir(BASE_DIR);
   }
   if (!dir) {
     uiDispError("Could not open gba dir.");
@@ -183,7 +209,7 @@ const char *uiChooseFileMenu() {
       }
     }
     if (k == SDLK_RETURN) {
-      uiGbaFilePath = "gba/" + uiGbaFileList[currentItem];
+      uiGbaFilePath = string(BASE_DIR) + "/" + uiGbaFileList[currentItem];
       return uiGbaFilePath.c_str();
     }
   }

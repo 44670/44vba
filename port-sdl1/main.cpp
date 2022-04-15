@@ -13,6 +13,7 @@
 #include "memory.h"
 #include "sound.h"
 
+uint8_t lastSaveBuf[LIBRETRO_SAVE_BUF_LEN];
 int audioOpened = 0;
 int frameDrawn = 0;
 int audioSent = 0;
@@ -51,6 +52,10 @@ void systemMessage(const char *fmt, ...) {
   printf("GBA: %s\n", buf);
 }
 
+void emuUpdateFB() {
+  SDL_UpdateRect(screen, 0, 0, 0, 0);
+}
+
 void systemDrawScreen(void) {
   frameDrawn = 1;
   frameCount++;
@@ -65,7 +70,7 @@ void systemDrawScreen(void) {
   }
   uint16_t *rgb565Buf = pix;
   memcpy(screen->pixels, rgb565Buf, 256 * 160 * 2);
-  SDL_UpdateRect(screen, 0, 0, 0, 0);
+  emuUpdateFB();
 }
 
 void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
@@ -82,8 +87,26 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
   }
 }
 
-void emuInit() {
-  void load_image_preferences(void);
+
+
+int emuLoadROM(const char *path) {
+  memset(rom, 0, 32 * 1024 * 1024);
+  memset(libretro_save_buf, 0, LIBRETRO_SAVE_BUF_LEN);
+  FILE *f = fopen(path, "rb");
+  if (!f) {
+    uiDispError("Open ROM Failed.");
+    return -1;
+  }
+  fseek(f, 0, SEEK_END);
+  int size = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  if (size > 32 * 1024 * 1024) {
+    uiDispError("ROM too large.");
+    return -1;
+  }
+  int bytesRead = fread(rom, 1, size, f);
+  fclose(f);
+
   cpuSaveType = 0;
   flashSize = 0x10000;
   enableRtc = false;
@@ -91,11 +114,27 @@ void emuInit() {
   CPUSetupBuffers();
   CPUInit(NULL, false);
   // gba_init();
+  void load_image_preferences(void);
   load_image_preferences();
   CPUReset();
-  soundSetSampleRate(48000);
+  soundSetSampleRate(47782);
   soundReset();
   rtcEnable(true);
+  // Load Save File
+  snprintf(savFilePath, sizeof(savFilePath), "%s.4gs", path);
+  FILE *savFile = fopen(savFilePath, "rb");
+  if (savFile) {
+    printf("Loading save file: %s\n", savFilePath);
+    fread(libretro_save_buf, 1, LIBRETRO_SAVE_BUF_LEN, savFile);
+    fclose(savFile);
+  }
+  memcpy(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN);
+  prevSaveChanged = 0;
+#ifdef USE_FRAME_SKIP
+#warning "Frame skip enabled"
+  SetFrameskip(0x1);
+#endif
+  return 0;
 }
 
 void audioCallback(void *userdata, Uint8 *stream, int len) {
@@ -155,7 +194,7 @@ int main(int argc, char *argv[]) {
       .freq = 48000,
       .format = AUDIO_S16,
       .channels = 2,
-      .samples = 512,
+      .samples = 1024,
       .callback = audioCallback,
       .userdata = NULL,
   };
@@ -170,9 +209,8 @@ int main(int argc, char *argv[]) {
   // Set caption
   SDL_WM_SetCaption("GBA", NULL);
   while (1) {
-    if (!audioOpened) {
-      emuRunFrame();
-    }
+
+    emuRunFrame();
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {

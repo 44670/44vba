@@ -9,8 +9,14 @@
 #include "memory.h"
 #include "sound.h"
 #include "ui.h"
-#if defined(__SWITCH__)
+#ifdef __SWITCH__
 #include <switch.h>
+#endif
+#ifdef __VITA__
+#include <psp2/kernel/processmgr.h>
+#endif
+#ifdef __3DS__
+#include <3ds.h>
 #endif
 
 int showAudioDebug = 1;
@@ -25,9 +31,17 @@ char savFilePath[512];
 char osdText[64];
 int osdShowCount = 0;
 
+#ifndef SDL1
 SDL_Texture *texture;
 SDL_Renderer *renderer;
 SDL_AudioDeviceID audioDevice;
+#else
+SDL_Surface *screen;
+#endif
+#define AUDIO_LOCK SDL_LockAudio()
+#define AUDIO_UNLOCK SDL_UnlockAudio()
+int isAudioEnabled = 0;
+
 uint32_t lastTime = SDL_GetTicks();
 uint8_t lastSaveBuf[LIBRETRO_SAVE_BUF_LEN];
 int prevSaveChanged = 0;
@@ -43,9 +57,23 @@ volatile int emuKeyState[12][2];
 int emuKeyboardMap[12] = {SDLK_x,     SDLK_z,    SDLK_SPACE, SDLK_RETURN,
                           SDLK_RIGHT, SDLK_LEFT, SDLK_UP,    SDLK_DOWN,
                           SDLK_s,     SDLK_a,    SDLK_TAB,   SDLK_ESCAPE};
+#if defined(__VITA__)
+/*
+static const unsigned int button_map[] = {
+    SCE_CTRL_TRIANGLE, SCE_CTRL_CIRCLE, SCE_CTRL_CROSS, SCE_CTRL_SQUARE,
+    SCE_CTRL_LTRIGGER, SCE_CTRL_RTRIGGER,
+    SCE_CTRL_DOWN, SCE_CTRL_LEFT, SCE_CTRL_UP, SCE_CTRL_RIGHT,
+    SCE_CTRL_SELECT, SCE_CTRL_START};
+*/
+int emuJoystickMap[12] = {1, 2, 10, 11, 9, 7, 8, 6, 5, 4, 0, 3};
+int emuJoystickDeadzone = 10000;
+#elif defined(__3DS__)
+int emuJoystickMap[12] = {1, 2, 7, 8, -1, -1, -1, -1, 6, 5, 9, 8};
+int emuJoystickDeadzone = 10000;
+#else
 int emuJoystickMap[12] = {0, 1, 11, 10, 14, 12, 13, 15, 7, 6, 9, 5};
 int emuJoystickDeadzone = 10000;
-
+#endif
 void emuRunAudio() {
   audioSent = 0;
   while (!audioSent) {
@@ -103,10 +131,15 @@ void emuCheckSave() {
 }
 
 void emuUpdateFB() {
+#ifndef SDL1
   SDL_UpdateTexture(texture, NULL, pix, 256 * 2);
   SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
+#else
+  memcpy(screen->pixels, pix, 256 * 160 * 2);
+  SDL_UpdateRect(screen, 0, 0, 0, 0);
+#endif
 }
 
 void systemMessage(const char *fmt, ...) {
@@ -170,10 +203,11 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
     // Do not send audio in turbo mode
     return;
   }
-  SDL_LockAudioDevice(audioDevice);
+  AUDIO_LOCK;
+
   int wpos = (audioFifoHead + audioFifoLen) % AUDIO_FIFO_CAP;
   if (audioFifoLen + length >= AUDIO_FIFO_CAP) {
-    printf("audio fifo overflow: %d\n", audioFifoLen);
+    //printf("audio fifo overflow: %d\n", audioFifoLen);
     goto bed;
   }
   length = (length / 2) * 2;
@@ -186,7 +220,7 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
     audioFifoLen++;
   }
 bed:
-  SDL_UnlockAudioDevice(audioDevice);
+  AUDIO_UNLOCK;
 }
 
 void audioCallback(void *userdata, Uint8 *stream, int len) {
@@ -197,7 +231,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
   uint16_t *wptr = (uint16_t *)stream;
   int samples = len / 2;
   if (audioFifoLen < samples) {
-    printf("audio underrun: %d < %d\n", audioFifoLen, samples);
+    //printf("audio underrun: %d < %d\n", audioFifoLen, samples);
   } else {
     for (int i = 0; i < samples; i++) {
       int16_t sample = audioFifo[audioFifoHead];
@@ -214,15 +248,18 @@ int emuLoadROM(const char *path) {
   memset(libretro_save_buf, 0, LIBRETRO_SAVE_BUF_LEN);
   FILE *f = fopen(path, "rb");
   if (!f) {
-    printf("Failed to open ROM: %s\n", path);
+    uiDispError("Open ROM Failed.");
     return -1;
   }
   fseek(f, 0, SEEK_END);
   int size = ftell(f);
   fseek(f, 0, SEEK_SET);
+  if (size > 32 * 1024 * 1024) {
+    uiDispError("ROM too large.");
+    return -1;
+  }
   int bytesRead = fread(rom, 1, size, f);
   fclose(f);
-  printf("Loaded %d bytes\n", bytesRead);
 
   cpuSaveType = 0;
   flashSize = 0x10000;
@@ -247,6 +284,10 @@ int emuLoadROM(const char *path) {
   }
   memcpy(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN);
   prevSaveChanged = 0;
+#ifdef USE_FRAME_SKIP
+#warning "Frame skip enabled"
+  SetFrameskip(0x1);
+#endif
   return 0;
 }
 
@@ -260,13 +301,18 @@ void emuHandleKey(int key, int down) {
 }
 
 int main(int argc, char *argv[]) {
+#ifdef __3DS__
+  osSetSpeedupEnable(true);
+#endif
   int windowWidth = 240 * 4;
   int windowHeight = 160 * 4;
+#ifndef SDL1
 #ifdef _WIN32
   printf("We are on windows! Using opengl...\n");
   SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 #endif
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+#endif
   // Init SDL2
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
 #ifdef __SWITCH__
@@ -277,18 +323,33 @@ int main(int argc, char *argv[]) {
     windowHeight = 1080;
   }
 #endif
+#ifdef __VITA__
+  windowWidth = 960;
+  windowHeight = 544;
+#warning "Vita: Using 960x544 window"
+#endif
+#ifndef SDL1
   // Init video to RGB565
   SDL_Window *window = SDL_CreateWindow(
       "GBA", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
       windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+  renderer = SDL_CreateRenderer(
+      window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565,
                               SDL_TEXTUREACCESS_STREAMING, 240, 160);
-
+#else
+  screen = SDL_SetVideoMode(256, 160, 16, SDL_SWSURFACE);
+  SDL_ShowCursor(SDL_DISABLE);
+#endif
+#ifdef __3DS__
+  consoleInit(GFX_BOTTOM, NULL);
+#endif
   SDL_Joystick *joystick = SDL_JoystickOpen(0);
   if (!joystick) {
     printf("Failed to open joystick\n");
+  } else {
+    printf("Opened joystick\n");
   }
   SDL_JoystickEventState(SDL_ENABLE);
   const char *romPath = uiChooseFileMenu();
@@ -296,9 +357,11 @@ int main(int argc, char *argv[]) {
     printf("No ROM selected\n");
     return 0;
   }
+  uiShowText("Loading...");
   if (emuLoadROM(romPath) != 0) {
     return 0;
   }
+  uiShowText("Loaded!");
   // Init audio
   SDL_AudioSpec desiredSpec = {
       .freq = 48000,
@@ -307,15 +370,16 @@ int main(int argc, char *argv[]) {
       .samples = 1024,
       .callback = audioCallback,
   };
-  SDL_AudioSpec obtainedSpec;
-  audioDevice = SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &obtainedSpec, 0);
-  if (audioDevice == 0) {
+  int ret = SDL_OpenAudio(&desiredSpec, NULL);
+  if (ret != 0) {
     printf("Could not open audio device\n");
-    return 0;
+  } else {
+    printf("Audio device opened\n");
+    isAudioEnabled = 1;
   }
-  printf("Audio device opened\n");
+
   // Play audio
-  SDL_PauseAudioDevice(audioDevice, 0);
+  SDL_PauseAudio(0);
 #ifdef __SWITCH__
   appletLockExit();
 #endif
@@ -334,6 +398,7 @@ int main(int argc, char *argv[]) {
           isQuitting = 1;
           goto bed;
         }
+#ifdef USE_KEYBOARD
         if (event.type == SDL_KEYDOWN) {
           int keyCode = event.key.keysym.sym;
           emuHandleKey(keyCode, 1);
@@ -342,11 +407,13 @@ int main(int argc, char *argv[]) {
           int keyCode = event.key.keysym.sym;
           emuHandleKey(keyCode, 0);
         }
+#endif
       }
       // Poll joysticks
       if (joystick) {
         // SDL_JoystickUpdate(); // Already called in SDL_PollEvent
         for (int i = 0; i < 12; i++) {
+          emuKeyState[i][1] = 0;
           if (emuJoystickMap[i] == -1) {
             continue;
           }
@@ -359,6 +426,14 @@ int main(int argc, char *argv[]) {
         emuKeyState[5][1] |= xaxis < -emuJoystickDeadzone;
         emuKeyState[6][1] |= yaxis < -emuJoystickDeadzone;
         emuKeyState[7][1] |= yaxis > emuJoystickDeadzone;
+#ifdef __3DS__
+        Uint8 hat = SDL_JoystickGetHat(joystick, 0);
+        //printf("hat: %d\n", hat);
+        emuKeyState[4][1] |= hat & SDL_HAT_RIGHT;
+        emuKeyState[5][1] |= hat & SDL_HAT_LEFT;
+        emuKeyState[6][1] |= hat & SDL_HAT_UP;
+        emuKeyState[7][1] |= hat & SDL_HAT_DOWN;
+#endif
       }
       joy = 0;
       for (int i = 0; i < 10; i++) {
@@ -374,6 +449,13 @@ bed:
   emuUpdateSaveFile();
 #ifdef __SWITCH__
   appletUnlockExit();
+#endif
+#ifndef __3DS__
+  // Do not call SDL_Quit on 3ds
+  SDL_Quit();
+#endif
+#ifdef __VITA__
+  sceKernelExitProcess(0);
 #endif
   return 0;
 }

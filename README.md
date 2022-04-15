@@ -6,11 +6,13 @@ Forked from https://github.com/libretro/vba-next .
 
 # Platforms and Test Results
 
+Tested with [Goodboy Advance](https://www.gbadev.org/demos.php?showinfo=1486), in game-play.
 
 | Name | Tested hardware | Performance | Notes |
 | --- | --- | --- | --- |
-| ESP32-S3 | ESP32-S3-WROOM-1-N8R8 | ~20 fps | FrameSkip: 1 |
-| SDL2 | AMD 3800X | ~1000 fps | |
-| SDL2 | Switch | ~200 fps | |
-| SDL2 | Apple M1 | ~1700 fps | wow |
-| SDL1 | New 3DS | ~50 fps | |
+| ESP32-S3 | ESP32-S3-WROOM-1-N8R8 | | frameskip: 1 |
+| SDL2 | AMD 3800X | 1200 fps | |
+| SDL2 | Switch | 314 fps | |
+| SDL2 | Apple M1 |  | |
+| SDL2 | Vita | 131 fps | frameskip: 1, overclocked |
+| SDL1 | New 3DS |  111 fps | frameskip: 1, overclocked |

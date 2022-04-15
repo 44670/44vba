@@ -14,6 +14,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "os.h"
 #include "nvs_flash.h"
 #include "sdkconfig.h"
 
@@ -22,6 +23,7 @@
 #include "gba.h"
 #include "globals.h"
 
+uint16_t FB[240 * 160];
 int frameDrawn = 0;
 uint32_t frameCount = 0;
 
@@ -30,7 +32,7 @@ void emuRunFrame() {
   while (!frameDrawn) {
     CPULoop();
   }
-  frameCount ++;
+  frameCount++;
 }
 
 void systemMessage(const char *fmt, ...) {
@@ -42,7 +44,20 @@ void systemMessage(const char *fmt, ...) {
   ESP_LOGE("GBA", "%s", buf);
 }
 
-void systemDrawScreen(void) { frameDrawn = 1; }
+void systemDrawScreen(void) {
+  frameDrawn = 1;
+  uint16_t *src = pix;  // Stride is 256
+  uint16_t *dst = FB;   // Stride is 240
+  
+  for (int y = 0; y < 160; y++) {
+    for (int x = 0; x < 240; x++) {
+      *dst++ = __builtin_bswap16(*src++);
+    }
+    src += 256 - 240;
+  }
+  lcdSetWindow(0, 40, 240 - 1, 200 - 1);
+  lcdWriteFB((uint8_t*)FB, 240 * 160 * 2);
+}
 
 void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {}
 
@@ -53,9 +68,14 @@ void emuInit() {
   SetFrameskip(0x1);
 }
 
-uint8_t *libretro_save_buf;
-
 extern "C" void app_main() {
+  osInit();
+  delayMS(500);
+  lcdSetWindow(0, 0, LCD_W - 1, LCD_H - 1);
+  lcdWriteFB((uint8_t*)FB, sizeof(FB));
+  lcdWriteFB((uint8_t*)FB, sizeof(FB));
+  printf("Hello world!\n");
+
   spi_flash_mmap_handle_t outHandle;
   const esp_partition_t *partition = esp_partition_find_first(
       ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, "rom");
@@ -81,6 +101,8 @@ extern "C" void app_main() {
   int prevTimeStamp = 0;
   TickType_t fpsTick = xTaskGetTickCount();
   while (1) {
+    joy = osReadKey();
+    UpdateJoypad();
     emuRunFrame();
     if (frameCount % 120 == 0) {
       TickType_t now = xTaskGetTickCount();

@@ -31,7 +31,7 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+TARGET		:=	44gba
 BUILD		:=	build
 SOURCES		:=	../ ../../src ../../libretro
 DATA		:=	data
@@ -48,7 +48,7 @@ ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 
 CFLAGS	:=	-g -Wall -O3 -mword-relocations \
 			-ffunction-sections \
-			-DFRONTEND_SUPPORTS_RGB565 -DHAVE_STDINT_H -DINLINE=inline -DLSB_FIRST -DUSE_STATIC_WRAM \
+			-DSDL1 -DUSE_FRAME_SKIP -DFRONTEND_SUPPORTS_RGB565 -DHAVE_STDINT_H -DINLINE=inline -DLSB_FIRST -DUSE_STATIC_WRAM \
 			-I../../../src -I../../../libretro -I../../../libretro-common/include \
 			$(ARCH)
 

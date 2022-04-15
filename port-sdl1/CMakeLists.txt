@@ -19,7 +19,6 @@ add_executable(gba
 "../src/sound.cpp"
 "../src/system.cpp"
 "../src/thread.c"
-"../libretro-common/memalign.c"
 "../libretro/libretro.cpp"
 )
 
