@@ -3,10 +3,8 @@
 #include <string.h>
 #include <math.h>
 #include <stddef.h>
-#include <memalign.h>
 #include <time.h>
 
-#include <streams/file_stream.h>
 
 #include "system.h"
 #include "globals.h"
@@ -9080,7 +9078,7 @@ static int utilGetSize(int size)
 
    return res;
 }
-
+#if 0
 static uint8_t *utilLoad(const char *file,
       bool (*accept)(const char *), uint8_t *data, int &size)
 {
@@ -9111,6 +9109,7 @@ static uint8_t *utilLoad(const char *file,
    filestream_close(fp);
    return image;
 }
+#endif
 
 #if 0
 #ifdef LOAD_FROM_MEMORY

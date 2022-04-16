@@ -173,7 +173,7 @@ void systemDrawScreen(void) {
     }
   }
   if (turboMode) {
-    if (frameCount % 20 != 0) {
+    if (frameCount % 200 != 0) {
       return;
     }
   }
