@@ -11,7 +11,7 @@ Tested with [Goodboy Advance](https://www.gbadev.org/demos.php?showinfo=1486), i
 | Name | Tested hardware | Performance | Notes |
 | --- | --- | --- | --- |
 | ESP32-S3 | ESP32-S3-WROOM-1-N8R8 | 20 fps | frameskip: 1 |
-| SDL2 | AMD 3800X | 1200 fps | |
+| SDL2 | AMD 3800X | 1800 fps | |
 | SDL2 | Switch | 314 fps | |
 | SDL2 | Apple M1 | 2300 fps | |
 | SDL2 | Vita | 131 fps | frameskip: 1, overclocked |

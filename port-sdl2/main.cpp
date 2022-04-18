@@ -19,7 +19,7 @@
 #include <3ds.h>
 #endif
 
-int showAudioDebug = 1;
+int showAudioDebug = 0;
 
 int isQuitting = 0;
 int autoSaveEnabled = 0;
@@ -173,7 +173,12 @@ void systemDrawScreen(void) {
     }
   }
   if (turboMode) {
-    if (frameCount % 200 != 0) {
+#ifdef __SWITCH__
+    const int turboModeSkipFactor = 6;
+#else
+    const int turboModeSkipFactor = 60;
+#endif
+    if (frameCount % turboModeSkipFactor != 0) {
       return;
     }
   }
@@ -207,7 +212,7 @@ void systemOnWriteDataToSoundBuffer(int16_t *finalWave, int length) {
 
   int wpos = (audioFifoHead + audioFifoLen) % AUDIO_FIFO_CAP;
   if (audioFifoLen + length >= AUDIO_FIFO_CAP) {
-    //printf("audio fifo overflow: %d\n", audioFifoLen);
+    // printf("audio fifo overflow: %d\n", audioFifoLen);
     goto bed;
   }
   length = (length / 2) * 2;
@@ -231,7 +236,7 @@ void audioCallback(void *userdata, Uint8 *stream, int len) {
   uint16_t *wptr = (uint16_t *)stream;
   int samples = len / 2;
   if (audioFifoLen < samples) {
-    //printf("audio underrun: %d < %d\n", audioFifoLen, samples);
+    // printf("audio underrun: %d < %d\n", audioFifoLen, samples);
   } else {
     for (int i = 0; i < samples; i++) {
       int16_t sample = audioFifo[audioFifoHead];
@@ -428,7 +433,7 @@ int main(int argc, char *argv[]) {
         emuKeyState[7][1] |= yaxis > emuJoystickDeadzone;
 #ifdef __3DS__
         Uint8 hat = SDL_JoystickGetHat(joystick, 0);
-        //printf("hat: %d\n", hat);
+        // printf("hat: %d\n", hat);
         emuKeyState[4][1] |= hat & SDL_HAT_RIGHT;
         emuKeyState[5][1] |= hat & SDL_HAT_LEFT;
         emuKeyState[6][1] |= hat & SDL_HAT_UP;
