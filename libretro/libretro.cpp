@@ -1,11 +1,11 @@
 #include <ctype.h>
-#include <libretro.h>
+//#include <libretro.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <streams/file_stream.h>
+//#include <streams/file_stream.h>
 #include <string.h>
-#include <vfs/vfs.h>
+//#include <vfs/vfs.h>
 
 #include "../src/gba.h"
 #include "../src/globals.h"
@@ -14,8 +14,9 @@
 #include "../src/sound.h"
 #include "../src/system.h"
 #include "../src/types.h"
-#include "libretro_core_options.h"
+//#include "libretro_core_options.h"
 
+#if 0
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
 static retro_input_poll_t poll_cb;
@@ -31,7 +32,7 @@ char filename_bios[0x100] = {0};
 // uint8_t libretro_save_buf[0x20000 + 0x2000];	/* Workaround for
 // broken-by-design GBA save semantics. */
 static unsigned libretro_save_size = 0x22000;
-#if 0
+
 void *retro_get_memory_data(unsigned id)
 {
    if (id == RETRO_MEMORY_SAVE_RAM)
@@ -400,7 +401,7 @@ void load_image_preferences(void) {
   }
 
   if (found) {
-    if (log_cb) log_cb(RETRO_LOG_DEBUG, "Found ROM in vba-over list.\n");
+    //if (log_cb) log_cb(RETRO_LOG_DEBUG, "Found ROM in vba-over list.\n");
 
     enableRtc = gbaover[found_no].rtcEnabled;
 
@@ -442,7 +443,7 @@ static int get_frameskip_code(void) {
 #endif
 
 void gba_init(void) {
-  struct retro_variable var = {0};
+  //struct retro_variable var = {0};
   bool rtc = true;
 
   cpuSaveType = 0;
