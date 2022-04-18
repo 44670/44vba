@@ -279,6 +279,7 @@ int emuLoadROM(const char *path) {
   soundSetSampleRate(47782);
   soundReset();
   rtcEnable(true);
+  flashSetSize(flashSize);
   // Load Save File
   snprintf(savFilePath, sizeof(savFilePath), "%s.4gs", path);
   FILE *savFile = fopen(savFilePath, "rb");
