@@ -26,6 +26,7 @@ build
 *.nacp
 *.nro
 .*
+*.exe
 
 port-watchos
 Release
