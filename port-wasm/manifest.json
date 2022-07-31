@@ -1,0 +1,13 @@
+{
+    "name": "GBA Player",
+    "short_name": "GBA",
+    "start_url": ".",
+    "display": "fullscreen",
+    "background_color": "black",
+    "description": "GBA",
+    "icons": [{
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }]
+  }
