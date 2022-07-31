@@ -14,5 +14,16 @@ Tested with [Goodboy Advance](https://www.gbadev.org/demos.php?showinfo=1486), i
 | SDL2 | AMD 3800X | 1800 fps | |
 | SDL2 | Switch | 314 fps | |
 | SDL2 | Apple M1 | 2300 fps | |
-| SDL2 | Vita | 131 fps | frameskip: 1, overclocked |
-| SDL1 | New 3DS |  111 fps | frameskip: 1, overclocked |
+| SDL2 | Vita | 131 fps | frameskip: 1, overclocked | |
+| SDL1 | New 3DS |  111 fps | frameskip: 1, overclocked | |
+| watchOS | Apple Watch Series 5 | 451 fps | Not public yet |
+
+# Download 
+
+Pre-built binaries are available at:
+
+https://github.com/44670/44gba/releases
+
+Available platforms: Windows, Switch.
+
+You can also build from source for other platforms.
