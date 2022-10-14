@@ -1,4 +1,4 @@
-# 44GBA
+# 44VBA
 
 A GBA emulator for various platforms, including ESP32-S3, embedded linux, wasm, etc.
 
@@ -17,12 +17,13 @@ Tested with [Goodboy Advance](https://www.gbadev.org/demos.php?showinfo=1486), i
 | SDL2 | Vita | 131 fps | frameskip: 1, overclocked | |
 | SDL1 | New 3DS |  111 fps | frameskip: 1, overclocked | |
 | watchOS | Apple Watch Series 5 | 451 fps | Not public yet |
+| WebAssembly | - | - | https://gba.44670.org |
 
 # Download 
 
 Pre-built binaries are available at:
 
-https://github.com/44670/44gba/releases
+https://github.com/44670/44vba/releases
 
 Available platforms: Windows, Switch.
 
