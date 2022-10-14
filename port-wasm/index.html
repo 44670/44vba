@@ -6,9 +6,10 @@
     <meta charset="utf-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height">
+    <meta name="viewport"
+        content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height">
     <link rel="apple-touch-icon" href="icon.png">
-    <title>GBA Player</title>
+    <title>44GBA</title>
 
 </head>
 
@@ -25,7 +26,7 @@
             overflow: hidden;
             -webkit-user-select: none;
             user-select: none;
-            -webkit-touch-callout:none;
+            -webkit-touch-callout: none;
             touch-action: none;
             cursor: inherit;
         }
@@ -38,7 +39,7 @@
             margin: 0;
             width: 100vw;
             height: 100vh;
-            font-family: 'Myriad Set Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+            font-family: 'Myriad Set Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
 
         hr {
@@ -79,7 +80,7 @@
         }
 
         .menu {
-            background: rgb(32,43,56);
+            background: rgb(32, 43, 56);
             position: absolute;
             left: 0;
             top: 0;
@@ -91,7 +92,6 @@
         #gba-canvas {
             position: absolute;
             z-index: -1;
-            image-rendering: pixelated;
         }
 
         #vk-layer {
@@ -109,23 +109,25 @@
             left: 0;
             width: 100%;
             top: 40vh;
-            background:rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 2;
         }
     </style>
     <div id="pause-menu" class="menu" style="background: rgba(32,43,56,0.7);" hidden>
-        <h1><button onclick="setPauseMenu(false)"> ← Back </button>Game Paused</h1>
-        <hr>
-        Memory Hacking:<br>
-        <input id="cht-addr" value="0x">
-        <input id="cht-value">
-        <button onclick="chtReadBtn()">Read</button>
-        <button onclick="chtWriteBtn()">Write</button>
+        <button onclick="setPauseMenu(false)"> ← Back </button>
         <hr>
         Savegame management:<br>
         <button onclick="savBackupBtn()">Backup</button>
-        <input type="file" id="sav-file" />
-        <button onclick="savRestoreBtn()">Restore</button>
+        <input type="file" id="sav-file" onchange="savRestoreBtn()" hidden>
+        <button onclick="$id('sav-file').click()">Restore</button>
+        <hr>
+        <label for="cfg-scale-mode">Screen filter(restart required):</label>
+        <select id="cfg-scale-mode">
+            <option value="0">Pixelated</option>
+            <option value="1">Smooth</option>
+            <option value="2">XBRZ</option>
+        </select><br>
+        <textarea id="txt-code" style="width:100%" rows="10"></textarea>
     </div>
     <div id="welcome" class="menu">
         <h1>44GBA</h1>
@@ -134,18 +136,19 @@
             Loading, please wait...
         </div>
         <div id="select-rom" hidden>
-<input type="file" id="romFile" onchange="onFileSelected()" hidden /></p>
-<button onclick="$id('romFile').click()">Choose File...</button>
-
+            <input type="file" id="romFile" onchange="onFileSelected()" hidden /></p>
+            <button onclick="$id('romFile').click()" id="btn-choose">Choose File...</button>
         </div>
         <hr>
-        Ver. 20220723
+        Ver. 20220723 | <a href="https://github.com/44670/44gba">GitHub</a>
         <p>
-            This software should not be used to play games you have not legally obtained.
+            This software should not be used to play games you have not legally obtained.<br>
+            "GBA" is a trademark of Nintendo Co.,Ltd, This site is not associated with Nintendo in any way.
         </p>
         <div id="ios-hint" hidden>
-            Due to limitations of iOS, please <b>add this page to the home screen</b> and launch it from the home screen icon to enable features including savegame and full screen.
-            <p style="text-align: center;">👇</p>
+            Due to iOS limitations, please open this site(https://gba.44670.org) in <b>Safari</b>, and add it to your
+            <b>Home Screen</b> by <b>Share Menu</b> to continue.
+            <p style="text-align: center;">⬇⬇⬇</p>
         </div>
     </div>
     <div id="msg-layer" hidden>
@@ -169,10 +172,11 @@
         <div class=" vk vk-hide" style="background-color: transparent !important" data-k="dl"></div>
         <div class=" vk vk-hide" style="background-color: transparent !important" data-k="dr"></div>
     </div>
-    <canvas width="240" height="160" id="gba-canvas" style="touch-action: none;image-rendering: pixelated;"></canvas>
+    <canvas width="240" height="160" id="gba-canvas" style=""></canvas>
     <script src="localforage.js"></script>
     <script src="app.js"></script>
     <script src="build/44gba.js"></script>
+    
 
 </body>
 

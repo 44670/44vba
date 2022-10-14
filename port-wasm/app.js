@@ -65,6 +65,7 @@ var turboInterval = -1
 
 var gbaWidth
 var gbaHeight
+var cheatCode
 
 
 
@@ -201,6 +202,27 @@ function savRestoreBtn() {
     }
 }
 
+function applyCheatCode() {
+    var ptrGBuf = Module._emuGetSymbol(4)
+    var gbuf = Module.HEAPU8.subarray(ptrGBuf, ptrGBuf + 0x1000)
+    var lines = cheatCode.split('\n')
+    var textEnc = new TextEncoder()
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim()
+        if (line.length == 0) {
+            continue
+        }
+        if (line.length == 12) {
+            line = line.substr(0, 8) + ' ' + line.substr(8, 4)
+        }
+        var lineBuf = textEnc.encode(line)
+        console.log(lineBuf.length)
+        gbuf.set(lineBuf)
+        gbuf[lineBuf.length] = 0
+        console.log(Module._emuAddCheat(ptrGBuf))
+    }
+}
+
 function loadRomArrayBuffer(arrayBuffer) {
     isRunning = false
     console.log(arrayBuffer)
@@ -220,10 +242,16 @@ function loadRomArrayBuffer(arrayBuffer) {
     }
     console.log('gameID', gameID)
     Module.HEAPU8.set(u8, romBuffer)
+    cheatCode = localStorage['cht-' + gameID] 
+    if (cheatCode) {
+        $id('txt-code').value = cheatCode
+    }     
     var ret = Module._emuLoadROM(u8.length)
     document.getElementById('welcome').hidden = true
     loadSaveGame(0, function () {
         Module._emuResetCpu()
+        applyCheatCode()
+        alert('cheat code loaded')
         isRunning = true
     })
 
@@ -551,14 +579,12 @@ function getVKState() {
 }
 
 function convertKeyCode(keyCode) {
-    const keymap = [90, 88, 8, 13, 39, 37, 38, 40, 17, 16]
+    // const keyList = ["a", "b", "select", "start", "right", "left", 'up', 'down', 'r', 'l'];
+    const keymap = [88, 90, 16, 13, 39, 37, 38, 40, 87, 81] // z x shift enter right left up down w q
     //8bitdo Zero2 in Keyboard Mode
-    const keymap2 = [71, 74, 78, 79, 70, 69, 67, 68, 77, 75]
+    //const keymap2 = [71, 74, 78, 79, 70, 69, 67, 68, 77, 75]
     for (var i = 0; i < 10; i++) {
         if (keyCode == keymap[i]) {
-            return i
-        }
-        if (keyCode == keymap2[i]) {
             return i
         }
     }
@@ -636,6 +662,14 @@ function setTurboMode(t) {
 }
 
 function setPauseMenu(t) {
+    if (!t) {
+        // Save cheat code
+        var cheatCode = filterCheatCode($id('txt-code').value)
+        if ((localStorage['cht-' + gameID] || '') != cheatCode) {
+            localStorage['cht-' + gameID] = cheatCode
+            showMsg('Cheat code saved. Restart the app to apply.')
+        }
+    }
     t = t ? true : false
     isRunning = !t
     document.getElementById('pause-menu').hidden = !t
@@ -668,3 +702,23 @@ function chtReadBtn() {
 window.addEventListener("gamepadconnected", function (e) {
     console.log("Gamepad connected")
 });
+
+
+$id('txt-code').placeholder = 'Cheat code:\nGameshark: XXXXXXXXYYYYYYYY\nAction Replay: XXXXXXXX YYYY'
+
+function filterCheatCode(code) {
+    var lines = code.split('\n')
+    var ret = ''
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim().replace(/ /g, '')
+        if ((line.length != 16) && (line.length != 12)) {
+            continue
+        }
+        // Check if it's a hex string
+        if (line.match(/[^0-9A-F]/)) {
+            continue
+        }
+        ret += line + '\n'
+    }
+    return ret
+}

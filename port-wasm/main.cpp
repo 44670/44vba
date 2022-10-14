@@ -10,6 +10,9 @@
 #include "memory.h"
 #include "sound.h"
 #include "ui.h"
+
+uint8_t emuGBuf[0x1000];
+
 void load_image_preferences(void);
 
 int showAudioDebug = 0;
@@ -81,7 +84,8 @@ void emuRunFrame(int key) {
 }
 
 int emuUpdateSavChangeFlag() {
-  int changed = (memcmp(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN) != 0);
+  int changed =
+      (memcmp(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN) != 0);
   if (changed) {
     memcpy(lastSaveBuf, libretro_save_buf, LIBRETRO_SAVE_BUF_LEN);
   }
@@ -112,9 +116,7 @@ int emuLoadROM(int romSize) {
   return 0;
 }
 
-void emuResetCpu() {
-  CPUReset();
-}
+void emuResetCpu() { CPUReset(); }
 
 void *emuGetSymbol(int id) {
   if (id == 1) {
@@ -125,6 +127,21 @@ void *emuGetSymbol(int id) {
   }
   if (id == 3) {
     return FB;
+  }
+  if (id == 4) {
+    return emuGBuf;
+  }
+  return 0;
+}
+
+int emuAddCheat(const char *codeLine) {
+  int len = strlen(codeLine);
+  if (len == 13) {
+    cheatsAddCBACode(codeLine, codeLine);
+  } else if (len == 16) {
+    cheatsAddGSACode(codeLine, codeLine, true);
+  } else {
+    return -1;
   }
   return 0;
 }
