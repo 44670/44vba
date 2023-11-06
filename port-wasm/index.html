@@ -52,16 +52,7 @@
             color: white;
             padding: .5em;
         }
-
-        .vk-round {
-            text-align: center;
-            vertical-align: middle;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-
-        .vk {
+         .vk {
             color: rgba(0, 0, 0, 0.2);
             background-color: rgba(255, 255, 255, 0.25);
             position: absolute;
@@ -69,7 +60,14 @@
             text-align: center;
             vertical-align: middle;
             display: inline-block;
+            border-radius: 15px;
         }
+        .vk-round {
+            text-align: center;
+            vertical-align: middle;
+            border-radius: 50%;
+            display: inline-block;
+        } 
 
         .vk-hide {
             background-color: transparent !important
@@ -172,7 +170,7 @@
         <div class=" vk vk-hide" style="background-color: transparent !important" data-k="dl"></div>
         <div class=" vk vk-hide" style="background-color: transparent !important" data-k="dr"></div>
     </div>
-    <canvas width="240" height="160" id="gba-canvas" style=""></canvas>
+    <canvas width="240" height="160" id="gba-canvas"></canvas>
     <script src="localforage.js"></script>
     <script src="app.js"></script>
     <script src="build/44gba.js"></script>
